@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+debug() {
+   read -p "Press any key to continue... " c
+}
+
 usage() {
    echo "$1"
    echo -e "\t--output [PATH/TO/IMAGE.img]"
@@ -64,6 +68,24 @@ sudo parted -s "${loop_device}" mklabel gpt
 # Create boot partition
 sudo parted -s "${loop_device}" mkpart primary fat32 2048s 1073663s
 sudo parted -s "${loop_device}" set 1 esp on
+
+boot_partition="${loop_device}p1"
+
+echo "Loop Device: ${loop_device}"
+echo "Boot Partition: ${boot_partition}"
+
+sudo mkfs.vfat ${boot_partition}
+
+# Mount partitions
+sudo mkdir -p /tmp/sl-boot
+sudo mount -t vfat ${boot_partition} /tmp/sl-boot
+sudo mkdir -p /tmp/sl-boot/EFI/BOOT
+
+# Install grub
+sudo grub-install --target=x86_64-efi --boot-directory=/tmp/sl-boot --efi-directory=/tmp/sl-boot --bootloader-id=grub
+
+# Umount partitions
+sudo umount ${boot_partition}
 
 # Remove loop device
 sudo losetup -d "${loop_device}"
