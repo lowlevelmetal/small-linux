@@ -7,8 +7,8 @@ usage() {
    exit 1
 }
 
-OUTPUT="./boot.img"
-SIZE="512"
+OUTPUT="./small-linux.img"
+SIZE="4096"
 
 # Check for root
 if [[ "$(id -u)" == 0 ]]; then
@@ -55,5 +55,18 @@ echo "SIZE: ${SIZE}"
 # DD the image
 dd if=/dev/zero of=${OUTPUT} bs=1M count=${SIZE}
 
+# Create loop device
+loop_device=$(sudo losetup -f --show "${OUTPUT}")
+
+# Create gpt
+sudo parted -s "${loop_device}" mklabel gpt
+
 # Create boot partition
-mkfs.fat -F 32 ${OUTPUT}
+sudo parted -s "${loop_device}" mkpart primary fat32 2048s 1073663s
+sudo parted -s "${loop_device}" set 1 esp on
+
+# Remove loop device
+sudo losetup -d "${loop_device}"
+
+# debug
+sudo parted -s "${OUTPUT}" print
