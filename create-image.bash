@@ -78,12 +78,19 @@ sudo parted -s "${loop_device}" mkpart primary fat32 2048s 524288s
 sudo parted -s "${loop_device}" set 1 boot on
 sudo parted -s "${loop_device}" set 1 esp on
 
+# Create root partition
+sudo parted -s "${loop_device}" mkpart primary ext4 524289s 100%
+
 boot_partition="${loop_device}p1"
+root_partition="${loop_device}p2"
 
 echo "Loop Device: ${loop_device}"
 echo "Boot Partition: ${boot_partition}"
+echo "Root Partition: ${root_partition}"
 
+# Format partitions
 sudo mkfs.vfat ${boot_partition}
+sudo mkfs.ext4 ${root_partition}
 
 # Mount partitions
 sudo mkdir -p /tmp/sl-boot
@@ -94,8 +101,6 @@ sudo grub-install --target=x86_64-efi --boot-directory=/tmp/sl-boot --efi-direct
 
 # Apply configuration
 echo "${MENTRY_GSHELL}" | sudo tee /tmp/sl-boot/EFI/BOOT/grub.cfg >/dev/null
-
-debug
 
 # Umount partitions
 sudo umount ${boot_partition}
