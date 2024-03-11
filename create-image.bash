@@ -23,6 +23,7 @@ usage() {
 
 OUTPUT="./small-linux.img"
 SIZE="2048"
+KERNEL_DIR="./linux"
 
 # Check for root
 if [[ "$(id -u)" == 0 ]]; then
@@ -107,7 +108,8 @@ sudo grub-install --target=x86_64-efi --boot-directory=/tmp/sl-boot --efi-direct
 # Apply configuration
 echo "${MENTRY_GSHELL}" | sudo tee /tmp/sl-boot/EFI/BOOT/grub.cfg >/dev/null
 
-debug
+# Install kernel
+sudo cp ${KERNEL_DIR}/arch/x86_64/boot/bzImage /tmp/sl-boot/EFI/Custom/vmlinuz-sl
 
 # Umount partitions
 sudo umount ${boot_partition}
