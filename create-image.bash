@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# Define the menu entry content
+MENTRY_GSHELL="
+set timeout=5
+menuentry \"GRUB Test\" {
+    echo \"Grub test!\"
+}
+"
+
 debug() {
    read -p "Press any key to continue... " c
 }
@@ -12,7 +20,7 @@ usage() {
 }
 
 OUTPUT="./small-linux.img"
-SIZE="4096"
+SIZE="2048"
 
 # Check for root
 if [[ "$(id -u)" == 0 ]]; then
@@ -66,7 +74,8 @@ loop_device=$(sudo losetup -f --show "${OUTPUT}")
 sudo parted -s "${loop_device}" mklabel gpt
 
 # Create boot partition
-sudo parted -s "${loop_device}" mkpart primary fat32 2048s 1073663s
+sudo parted -s "${loop_device}" mkpart primary fat32 2048s 524288s
+sudo parted -s "${loop_device}" set 1 boot on
 sudo parted -s "${loop_device}" set 1 esp on
 
 boot_partition="${loop_device}p1"
@@ -79,10 +88,14 @@ sudo mkfs.vfat ${boot_partition}
 # Mount partitions
 sudo mkdir -p /tmp/sl-boot
 sudo mount -t vfat ${boot_partition} /tmp/sl-boot
-sudo mkdir -p /tmp/sl-boot/EFI/BOOT
 
 # Install grub
-sudo grub-install --target=x86_64-efi --boot-directory=/tmp/sl-boot --efi-directory=/tmp/sl-boot --bootloader-id=grub
+sudo grub-install --target=x86_64-efi --boot-directory=/tmp/sl-boot --efi-directory=/tmp/sl-boot --removable --recheck
+
+# Apply configuration
+echo "${MENTRY_GSHELL}" | sudo tee /tmp/sl-boot/EFI/BOOT/grub.cfg >/dev/null
+
+debug
 
 # Umount partitions
 sudo umount ${boot_partition}
