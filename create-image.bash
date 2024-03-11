@@ -3,8 +3,10 @@
 # Define the menu entry content
 MENTRY_GSHELL="
 set timeout=5
-menuentry \"GRUB Test\" {
-    echo \"Grub test!\"
+
+menuentry 'Small Linux (INSTALLER)' {
+    set root='hd0,gpt1'
+    linux /EFI/Custom/vmlinuz-sl root=/dev/sda2 console=tty0 loglevel=7 vga=normal debug
 }
 "
 
@@ -74,12 +76,12 @@ loop_device=$(sudo losetup -f --show "${OUTPUT}")
 sudo parted -s "${loop_device}" mklabel gpt
 
 # Create boot partition
-sudo parted -s "${loop_device}" mkpart primary fat32 2048s 524288s
+sudo parted -s "${loop_device}" mkpart primary fat32 2048s 1048576s
 sudo parted -s "${loop_device}" set 1 boot on
 sudo parted -s "${loop_device}" set 1 esp on
 
 # Create root partition
-sudo parted -s "${loop_device}" mkpart primary ext4 524289s 100%
+sudo parted -s "${loop_device}" mkpart primary ext4 1048577s 100%
 
 boot_partition="${loop_device}p1"
 root_partition="${loop_device}p2"
@@ -94,13 +96,18 @@ sudo mkfs.ext4 ${root_partition}
 
 # Mount partitions
 sudo mkdir -p /tmp/sl-boot
+sudo mkdir -p /tmp/sl-root
 sudo mount -t vfat ${boot_partition} /tmp/sl-boot
+sudo mount ${root_partition} /tmp/sl-root
+sudo mkdir -p /tmp/sl-boot/EFI/Custom
 
 # Install grub
 sudo grub-install --target=x86_64-efi --boot-directory=/tmp/sl-boot --efi-directory=/tmp/sl-boot --removable --recheck
 
 # Apply configuration
 echo "${MENTRY_GSHELL}" | sudo tee /tmp/sl-boot/EFI/BOOT/grub.cfg >/dev/null
+
+debug
 
 # Umount partitions
 sudo umount ${boot_partition}
